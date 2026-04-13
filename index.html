@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Spline 3D viewer web component -->
+  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.27/build/spline-viewer.js"></script>
   <style>
     :root {
       --purple:       #7C3AED;
@@ -727,6 +729,266 @@
       .modal { padding: 2rem 1.25rem; }
       .modal-title { font-size: 1.375rem; }
     }
+
+    /* ════════════════════════════════════════════
+       3D / SPLINE ENHANCEMENTS
+    ════════════════════════════════════════════ */
+
+    /* ─── HERO — Spline 3D scene wrap ─── */
+    .hero-3d-wrap {
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 58%;
+      /* Allow interaction with the 3D scene in the right region */
+      pointer-events: auto;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .hero-3d-wrap spline-viewer {
+      width: 100%;
+      height: 100%;
+      display: block;
+      opacity: 0;
+      transition: opacity 1.6s cubic-bezier(.22,1,.36,1);
+      /* cursor shows the scene is interactive */
+      cursor: grab;
+    }
+    .hero-3d-wrap spline-viewer:active { cursor: grabbing; }
+    .hero-3d-wrap.spline-ready spline-viewer { opacity: 1; }
+
+    /* All gradient fades are non-interactive (let mouse reach Spline scene) */
+    .hero-3d-fade-l,
+    .hero-3d-fade-r,
+    .hero-3d-fade-b,
+    .hero-3d-fade-t {
+      position: absolute;
+      pointer-events: none;
+      z-index: 2;
+    }
+    /* Left fade — blends scene into page copy */
+    .hero-3d-fade-l {
+      top: 0; bottom: 0; left: 0;
+      width: 38%;
+      background: linear-gradient(to right, var(--bg-light) 0%, transparent 100%);
+    }
+    /* Bottom fade */
+    .hero-3d-fade-b {
+      bottom: 0; left: 0; right: 0;
+      height: 22%;
+      background: linear-gradient(to top, var(--bg-light) 0%, transparent 100%);
+    }
+    /* Right fade */
+    .hero-3d-fade-r {
+      top: 0; bottom: 0; right: 0;
+      width: 8%;
+      background: linear-gradient(to left, var(--bg-light) 0%, transparent 100%);
+    }
+    /* Top fade */
+    .hero-3d-fade-t {
+      top: 0; left: 0; right: 0;
+      height: 18%;
+      background: linear-gradient(to bottom, var(--bg-light) 0%, transparent 100%);
+    }
+
+    /* SVG fallback — visible until Spline loads, then fades out */
+    .hero-circles {
+      transition: opacity 0.9s ease;
+    }
+    .spline-ready .hero-circles { opacity: 0; }
+
+    /* ─── SERVICES — CSS 3D perspective hover ─── */
+    #services .svc-grid {
+      perspective: 1400px;
+    }
+    .svc-card {
+      /* No preserve-3d — card-level rotation doesn't need it, avoids overflow conflict */
+      transition: box-shadow 0.35s, transform 0.32s cubic-bezier(.22,1,.36,1), border-color 0.32s;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Subtle inner glow sweep — non-interactive, purely cosmetic */
+    .svc-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, transparent 55%);
+      opacity: 0;
+      transition: opacity 0.35s;
+      pointer-events: none; /* Let clicks reach card content */
+      z-index: 0;
+    }
+    /* Card children sit above the gradient */
+    .svc-card > * { position: relative; z-index: 1; }
+    .svc-card:hover::after { opacity: 1; }
+    .svc-card:hover {
+      box-shadow:
+        0 2px 4px rgba(124,58,237,0.04),
+        0 10px 28px rgba(124,58,237,0.11),
+        0 28px 60px rgba(124,58,237,0.09);
+      transform: translateY(-7px) rotateX(2.5deg) rotateY(-1deg);
+      border-color: rgba(124,58,237,0.32);
+    }
+    .svc-card:active { transform: translateY(-2px) rotateX(0.5deg); }
+
+    /* ─── PROCESS — animated pulse connector ─── */
+    /* Hide the old CSS ::before line */
+    .proc-grid::before { display: none !important; }
+
+    .proc-connector {
+      position: absolute;
+      top: 1.375rem;
+      left: 12%; right: 12%;
+      height: 1px;
+      z-index: 0;
+      overflow: visible;
+    }
+    .proc-connector-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(124,58,237,0.12);
+    }
+    .proc-connector-pulse {
+      position: absolute;
+      top: -1px; bottom: -1px;
+      width: 28%;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(124,58,237,0.38) 30%,
+        rgba(157,92,255,0.9) 50%,
+        rgba(124,58,237,0.38) 70%,
+        transparent 100%
+      );
+      border-radius: 2px;
+      animation: procPulse 2.6s cubic-bezier(.4,0,.6,1) infinite;
+    }
+    @keyframes procPulse {
+      0%   { left: -30%; opacity: 0; }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { left: 102%; opacity: 0; }
+    }
+
+    /* Step nodes — enhanced states */
+    .proc-num {
+      box-shadow: 0 0 0 7px rgba(124,58,237,0.04);
+      transition:
+        transform 0.3s cubic-bezier(.34,1.56,.64,1),
+        box-shadow 0.3s,
+        border-color 0.25s,
+        color 0.25s,
+        background 0.25s;
+    }
+    .proc-step {
+      transition: transform 0.28s cubic-bezier(.22,1,.36,1);
+    }
+    .proc-step:hover { transform: translateY(-4px); }
+    .proc-step:hover .proc-num.on {
+      transform: scale(1.15);
+      box-shadow: 0 0 0 12px rgba(124,58,237,0.09), 0 6px 26px rgba(124,58,237,0.52);
+    }
+    .proc-step:hover .proc-num.off {
+      transform: scale(1.1);
+      border-color: rgba(124,58,237,0.55);
+      color: var(--purple);
+      box-shadow: 0 0 0 11px rgba(124,58,237,0.07);
+    }
+
+    /* ─── ABOUT — ambient CSS orb lighting ─── */
+    #about { position: relative; }
+    .about-ambient {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .aorb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(72px);
+      pointer-events: none;
+      will-change: transform;
+    }
+    .aorb-a {
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, rgba(124,58,237,0.24) 0%, transparent 65%);
+      right: 6%; top: 12%;
+      animation: aorbFloat 9s ease-in-out infinite;
+    }
+    .aorb-b {
+      width: 240px; height: 240px;
+      background: radial-gradient(circle, rgba(76,29,149,0.3) 0%, transparent 65%);
+      right: 22%; bottom: 8%;
+      animation: aorbFloat 13s ease-in-out infinite reverse;
+    }
+    .aorb-c {
+      width: 160px; height: 160px;
+      background: radial-gradient(circle, rgba(196,181,253,0.14) 0%, transparent 65%);
+      right: 48%; top: 45%;
+      animation: aorbFloat 7s ease-in-out infinite 1.5s;
+    }
+    @keyframes aorbFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50%       { transform: translateY(-22px) scale(1.05); }
+    }
+
+    /* ─── CONTACT — SVG noise grain overlay ─── */
+    #contact { position: relative; }
+    .contact-grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.042;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      background-repeat: repeat;
+    }
+    /* Subtle inner glow circles for CTA depth */
+    .contact-glow-a {
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      right: -80px; top: -120px;
+      background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 65%);
+      pointer-events: none; z-index: 0;
+    }
+    .contact-glow-b {
+      position: absolute;
+      width: 350px; height: 350px;
+      border-radius: 50%;
+      left: -60px; bottom: -80px;
+      background: radial-gradient(circle, rgba(196,181,253,0.07) 0%, transparent 65%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ─── SCROLL REVEAL — entrance animation ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.75s cubic-bezier(.22,1,.36,1), transform 0.75s cubic-bezier(.22,1,.36,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.32s; }
+    .reveal-delay-4 { transition-delay: 0.44s; }
+
+    /* ─── RESPONSIVE OVERRIDES for 3D ─── */
+    @media (max-width: 768px) {
+      .hero-3d-wrap { display: none; }
+      .svc-card:hover { transform: translateY(-4px); } /* kill 3D tilt on touch */
+      .aorb-b, .aorb-c { display: none; }
+      .aorb-a { width: 200px; height: 200px; right: 4%; opacity: 0.7; }
+      .proc-connector { left: 6%; right: 6%; }
+    }
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .hero-3d-wrap { width: 52%; }
+      .hero-3d-fade-l { width: 30%; }
+    }
   </style>
 </head>
 <body>
@@ -764,6 +1026,24 @@
 <!-- ══════════ HERO ══════════ -->
 <section id="home">
   <div class="hero-bg-word">NETWORK</div>
+
+  <!-- ── Spline 3D interactive network/connectivity scene ── -->
+  <div class="hero-3d-wrap" id="hero-3d-wrap">
+    <!-- Scene: Abstract tech connectivity orb — Spline community -->
+    <spline-viewer
+      url="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode"
+      id="hero-spline"
+      loading="lazy"
+      hint
+    ></spline-viewer>
+    <!-- Gradient masks to blend scene seamlessly into page -->
+    <div class="hero-3d-fade-l"></div>
+    <div class="hero-3d-fade-r"></div>
+    <div class="hero-3d-fade-b"></div>
+    <div class="hero-3d-fade-t"></div>
+  </div>
+
+  <!-- SVG fallback — visible while Spline loads, fades once ready -->
   <svg class="hero-circles" viewBox="0 0 440 440" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="220" cy="220" r="210" stroke="rgba(124,58,237,0.06)" stroke-width="1"/>
     <circle cx="220" cy="220" r="165" stroke="rgba(124,58,237,0.08)" stroke-width="1"/>
@@ -881,6 +1161,12 @@
 <!-- ══════════ ABOUT ══════════ -->
 <section id="about">
   <div class="about-bg-word">DATA</div>
+  <!-- Ambient CSS orb lighting — communicates depth and scale on dark bg -->
+  <div class="about-ambient" aria-hidden="true">
+    <div class="aorb aorb-a"></div>
+    <div class="aorb aorb-b"></div>
+    <div class="aorb aorb-c"></div>
+  </div>
   <!-- Left — Source: jpitwebsite-zeta.vercel.app/about.html -->
   <div style="position:relative;z-index:2;">
     <div class="abt-label">About JP IT Staffing</div>
@@ -893,7 +1179,7 @@
     </div>
   </div>
   <!-- Right — Source: jpitwebsite-zeta.vercel.app/about.html -->
-  <div class="feat-list">
+  <div class="feat-list" style="position:relative;z-index:2;">
     <div class="feat-item">
       <div class="feat-icon">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -943,25 +1229,30 @@
 
 <!-- ══════════ APPROACH — Source: jpitwebsite-zeta.vercel.app/about.html ══════════ -->
 <section id="process">
-  <div class="center-label">Our Approach</div>
-  <h2 class="proc-heading">Adapt. Scale. Deliver.</h2>
+  <div class="center-label reveal">Our Approach</div>
+  <h2 class="proc-heading reveal reveal-delay-1">Adapt. Scale. Deliver.</h2>
   <div class="proc-grid">
-    <div class="proc-step">
+    <!-- Animated gradient pulse connector line -->
+    <div class="proc-connector">
+      <div class="proc-connector-track"></div>
+      <div class="proc-connector-pulse"></div>
+    </div>
+    <div class="proc-step reveal reveal-delay-1">
       <div class="proc-num off">01</div>
       <div class="proc-title">Adapt</div>
       <div class="proc-desc">We rethink existing business processes and translate highly complex requirements into robust, frictionless solutions.</div>
     </div>
-    <div class="proc-step">
+    <div class="proc-step reveal reveal-delay-2">
       <div class="proc-num on">02</div>
       <div class="proc-title">Scale</div>
       <div class="proc-desc">We build cloud-native architectures and source elite engineering talent — supporting enterprises and hyper-growth startups worldwide.</div>
     </div>
-    <div class="proc-step">
+    <div class="proc-step reveal reveal-delay-3">
       <div class="proc-num off">03</div>
       <div class="proc-title">Deliver</div>
       <div class="proc-desc">End-to-end IT services from application development and staffing to remote infrastructure and ERP solutions — zero latency.</div>
     </div>
-    <div class="proc-step">
+    <div class="proc-step reveal reveal-delay-4">
       <div class="proc-num off">04</div>
       <div class="proc-title">Transform</div>
       <div class="proc-desc">Transforming lives by collaborating with clients. Our domain expertise aligns technology roadmaps with sector-specific challenges.</div>
@@ -1008,12 +1299,16 @@
 
 <!-- ══════════ CTA ══════════ -->
 <section id="contact">
+  <!-- Depth layers: grain texture + radial glows -->
+  <div class="contact-grain" aria-hidden="true"></div>
+  <div class="contact-glow-a" aria-hidden="true"></div>
+  <div class="contact-glow-b" aria-hidden="true"></div>
   <div style="position:relative;z-index:1;">
     <div class="cta-label">Let's Talk</div>
     <h2 class="cta-h2">Ready to scale<br>your team?</h2>
     <p class="cta-body">Have a project or robust staffing need? We engineer high-performance teams and solutions. Average response: 24h.</p>
   </div>
-  <div class="cta-btns">
+  <div class="cta-btns" style="position:relative;z-index:1;">
     <button class="btn-cta-fill" onclick="openModal('m-contact')">Get Started Today</button>
     <button class="btn-cta-outline" onclick="openModal('m-schedule')">Schedule a Call</button>
   </div>
@@ -1120,6 +1415,51 @@
 </div>
 
 <script>
+  /* ─── SPLINE SCENE LOADED HANDLER ─── */
+  (function() {
+    var wrap = document.getElementById('hero-3d-wrap');
+    var viewer = document.getElementById('hero-spline');
+    if (!viewer || !wrap) return;
+
+    // Mark ready when Spline fires its load event
+    viewer.addEventListener('load', function() {
+      wrap.classList.add('spline-ready');
+      // Also add to parent section so SVG fallback fades
+      var section = document.getElementById('home');
+      if (section) section.classList.add('spline-ready');
+    });
+
+    // Fallback: if Spline takes > 6s, keep SVG visible permanently
+    setTimeout(function() {
+      if (!wrap.classList.contains('spline-ready')) {
+        viewer.style.display = 'none';
+      }
+    }, 6000);
+  })();
+
+  /* ─── SCROLL REVEAL — IntersectionObserver ─── */
+  (function() {
+    if (!('IntersectionObserver' in window)) {
+      // Fallback: just show everything
+      document.querySelectorAll('.reveal').forEach(function(el) {
+        el.classList.add('visible');
+      });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(function(el) {
+      io.observe(el);
+    });
+  })();
+
   /* ─── MOBILE NAV TOGGLE ─── */
   function toggleMobileNav() {
     const nav = document.getElementById('mobile-nav');
